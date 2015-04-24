@@ -1,5 +1,5 @@
 from record import Record, RecordSet
-import os, datetime
+import os, datetime, re
 
 ## A file contains 10 days of data.
 BASEDATE = datetime.datetime(1984, 12, 21, tzinfo=datetime.timezone.utc)
@@ -40,7 +40,7 @@ class Storage:
     def pathname(self, fn):
         return os.path.join(self._path, fn)
     
-    def loadRecordsFromFile(self, fn):
+    def _loadRecordsFromFile(self, fn):
         out = RecordSet()
         try:
             with open(fn, "r") as f:
@@ -53,6 +53,23 @@ class Storage:
         except FileNotFoundError: pass
         return out
 
+    # Help function that collect all different values which are accessed
+    # through reccord.|prop|() method.
+    def _collectAll(self, prop):
+        out = set()
+        for i in self._allFilesIterator():
+            recs = self._loadRecordsFromFile(i)
+            out = out | getattr(recs, prop)()
+        return out
+    
+    def _allFilesIterator(self):
+        files = os.listdir(self._path)
+        matcher = re.compile(r'^financial_\d{8}.jsonl$')
+        for i in files:
+            if matcher.match(i) != None and \
+               os.path.isfile(os.path.join(self._path, i)):
+                yield os.path.join(self._path, i)
+    
     def insert(self, rec):
         # find file, append.
         with open(self.pathnameByDate(rec.date()), "a") as f:
@@ -62,7 +79,16 @@ class Storage:
     def list(self, start_date, end_date):
         out = RecordSet()
         for fn in fileNameGenerator(start_date, end_date):
-            out.combine(self.loadRecordsFromFile(self.pathname(fn)))
+            out.combine(self._loadRecordsFromFile(self.pathname(fn)))
         out.filterDate(start_date, end_date)
         return out
 
+    def allType(self):
+        return self._collectAll('types')
+
+    def allTag(self):
+        return self._collectAll('tags')
+
+    def allPayment(self):
+        return self._collectAll('payments')
+    

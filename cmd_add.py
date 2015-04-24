@@ -1,4 +1,4 @@
-import re, datetime, os
+import re, datetime, os, readline
 import dateutil.tz
 
 class DateInputHandler:
@@ -27,7 +27,7 @@ class DateInputHandler:
                 except Exception as e:
                     self.printSpec()
 
-        print(">> {}".format(out.strftime("%Y/%m/%d %H:%M")))
+        print(">> {}: {}".format(self._display, out.strftime("%Y/%m/%d %H:%M")))
         return out
 
     def tryParse(self, inp, now):
@@ -82,39 +82,67 @@ class DateInputHandler:
                                  tzinfo=dateutil.tz.tzlocal())
 
     def printSpec(self):
-        print("Date and time:")
-        print(" <day> <hour>:[<minute>]")
-        print(" <month>/<day> <hour>:[<minute>]")
-        print(" <year>/<month>/<day> <hour>:[<minute>]")
-        print("Time:")
-        print(" :<min>")
-        print(" <hour>:[<min>]")
-        print("or just enter to accept reference")
+        print(" Date and time:")
+        print("   <day> <hour>:[<minute>]")
+        print("   <month>/<day> <hour>:[<minute>]")
+        print("   <year>/<month>/<day> <hour>:[<minute>]")
+        print(" Time:")
+        print("   :<min>")
+        print("   <hour>:[<min>]")
+        print(" or just enter to accept reference")
         
 class TextInputHandler:
-    def __init__(self, display):
+    def __init__(self, display, allowEmpty = False):
         self._display = display
+        self._allowEmpty = allowEmpty
+
     def getInput(self):
-        return input(self._display + ": ")
+        r = None
+        while r == None or \
+              (not self._allowEmpty and len(r) == 0):
+            r = input(self._display + ": ")
+        return r
 
 class HintedInputHandler:
-    """ TODO: Support hint in constructor """
-    def __init__(self, display):
+    def __init__(self, display, hints, allowEmpty = False):
         self._display = display
+        self._hints = hints
+        self._allowEmpty = allowEmpty
+
+    def comp(self, txt, state):
+        if state == 0:
+            # build list
+            self._comp_list = [s for s in self._hints if s[:len(txt)] == txt]
+        return self._comp_list[state] if len(self._comp_list) > state else None
+
     def getInput(self):
-        return input(self._display + ": ")
+        readline.set_completer_delims('\n;')
+        readline.parse_and_bind("tab: complete")
+        readline.set_completer(self.comp)
+        r = None
+        while r == None or \
+              (not self._allowEmpty and len(r) == 0):
+            r = input(self._display + ": ")
+        readline.set_completer()
+        return r
 
 class TagsInputHandler:
-    def __init__(self, display):
+    def __init__(self, display, hints):
         self._display = display
+        self._hints = hints
     def getInput(self):
-        out = []
+        out = set()
+        initHints = set(self._hints)
         while True:
-            inp = input(self._display + " [empty to end]: ")
+            hints = initHints - out
+            print("Current tag: [{}]".format(", ".join(out)))
+            inp = HintedInputHandler(self._display + " [empty to end]",
+                                     hints,
+                                     allowEmpty = True).getInput()
             if inp == "":
                 break
-            out.append(inp)
-        return out
+            out.add(inp)
+        return list(out)
 
 class AmountInputHandler:
     def __init__(self, display):
@@ -136,9 +164,12 @@ class AddCommand:
         rec = self._csb.makeRecord(
             { "date":     DateInputHandler("Date").getInput(),
               "summary":  TextInputHandler("Summary").getInput(),
-              "type":     HintedInputHandler("Type").getInput(),
-              "tags":     TagsInputHandler("Tags").getInput(),
+              "type":     HintedInputHandler("Type",
+                                             self._csb.allType()).getInput(),
+              "tags":     TagsInputHandler("Tags",
+                                           self._csb.allTag()).getInput(),
               "amount":   AmountInputHandler("Amount").getInput(),
               "currency": "NTD",
-              "payment":  HintedInputHandler("Payment method").getInput() })
+              "payment":  HintedInputHandler("Payment method",
+                                             self._csb.allPayment()).getInput() })
         rec.store()

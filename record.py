@@ -14,7 +14,7 @@ class Record:
 
     @classmethod
     def createId(cls, date):
-        return cls.toBase36(int(date.timestamp()) * 10000 + random.randint(0, 1000))
+        return cls.toBase36(int(date.timestamp()) * 100 + random.randint(0, 99))
         
     @classmethod
     def createFromDictionary(cls, dic, storage):
@@ -63,29 +63,96 @@ class Record:
             "deleted": self._deleted
         })
 
-    def date(self):
-        return self._date
-
+    # modification
     def store(self):
         self._storage.insert(self)
+
+    def delete(self):
+        self._deleted = True
+        self.store()
+
+    # immutable properties
+    def date(self):
+        return self._date
 
     def rId(self):
         return self._id
 
+    def currency(self):
+        return self._currency
+
+    def deleted(self):
+        return self._deleted
+
+    # mutable properties
+    def _assignIfSet(self, attr, exp_type, v):
+        if isinstance(v, exp_type):
+            setattr(self, attr, v)
+        return getattr(self, attr)
+    
+    def amount(self, v = None):
+        return self._assignIfSet("_amount", int, v)
+
+    def summary(self, v = None):
+        return self._assignIfSet("_summary", str, v)
+
+    def typ(self, v = None):
+        return self._assignIfSet("_type", str, v)
+
+    def paymentMethod(self, v = None):
+        return self._assignIfSet("_paymentMethod", str, v)
+
+    def tags(self):
+        return self._tags
+
+    def addTag(self, v):
+        v = v.strip()
+        if not v in self._tags:
+            self._tags.append(v)
+
+    def removeTag(self, v):
+        try: self._tags.remove(v)
+        except: pass
+
 class RecordSet:
     def __init__(self):
         self._pool = dict() # id -> obj dictionary
+        self._cache = dict()
+        self._resetCache()
 
+    def _resetCache(self):
+        self._cache['types'] = None
+        self._cache['tags'] = None
+        self._cache['payments'] = None
+
+    # helper function that get a value by iterating over pool and cache the
+    # result. |cacheName| is the properties that store the data. |accessFunc|
+    # defines a function, which takes a |record| and return a set that is
+    # to be merged into our result.
+    def _cachedPoolGetter(self, cacheName, accessFunc):
+        if self._cache[cacheName] == None:
+            out = set()
+            for rec in self._pool.values():
+                out = out | accessFunc(rec)
+            self._cache[cacheName] = out
+        return self._cache[cacheName]
+        
     def insert(self, rec, replace):
         if (not replace) and (rec.rId() in self._pool):
             raise Exception("Given id is in the set already")
-        self._pool[rec.rId()] = rec
+        self._resetCache()
+        if rec.deleted() and rec.rId() in self._pool:
+            del self._pool[rec.rId()]
+        else:
+            self._pool[rec.rId()] = rec
 
     def combine(self, other):
+        self._resetCache()
         for i in other._pool.values():
             self.insert(i, False)
 
     def filterDate(self, start_date, end_date):
+        self._resetCache()
         new_pool = dict()
         for k, v in self._pool.items():
             if v.date() < start_date:
@@ -98,3 +165,17 @@ class RecordSet:
     def dateSorted(self):
         return sorted(self._pool.values(),
                       key = lambda x: x.date())
+
+    def unsorted(self):
+        return self._pool.values()
+
+    def types(self):
+        return self._cachedPoolGetter('types',
+                                      lambda r: { r.typ() })
+    def tags(self):
+        return self._cachedPoolGetter('tags',
+                                      lambda r: set(r.tags()))
+    def payments(self):
+        return self._cachedPoolGetter('payments',
+                                      lambda r: { r.paymentMethod() })
+

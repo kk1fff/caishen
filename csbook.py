@@ -11,5 +11,14 @@ class CSBook:
     def queryRange(self, start_date, end_date):
         return self._storage.list(start_date, end_date)
 
+    def allType(self):
+        return self._storage.allType()
+
+    def allPayment(self):
+        return self._storage.allPayment()
+
+    def allTag(self):
+        return self._storage.allTag()
+
 def CSBookBuilder(config):
     return CSBook(Storage(config.storagePath()))

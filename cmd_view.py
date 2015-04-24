@@ -19,16 +19,17 @@ def dayDiff(date, diff):
     return date + datetime.timedelta(days = diff)
     
 class RangeParser:
-    monthMatcher = re.compile(r"(\d+)m$")
-    yearMatcher = re.compile(r"(\d+)y$")
-    dayMatcher = re.compile(r"(\d*)d{0,1}$")
-    thisYearMatcher = re.compile(r"y$")
+    monthMatcher     = re.compile(r"(\d+)m$")
+    yearMatcher      = re.compile(r"(\d+)y$")
+    dayMatcher       = re.compile(r"(\d*)d{0,1}$")
+    thisYearMatcher  = re.compile(r"y$")
     thisMonthMatcher = re.compile(r"m$")
     def __init__(self, arg, now, arg2 = None):
         self._now = now
         self._start = None
         self._end = now
         self.parseSingle(arg)
+
     def parseSingle(self, arg):
         """Handle a single param to stand for a range"""
         number_filter = lambda s: 0 if len(s) == 0 else int(s)
@@ -65,14 +66,71 @@ class RangeParser:
 
         self._start = d1.replace(hour=0, minute=0,
                                  second=0, microsecond=0)
+
     def start(self):
         return self._start
+
     def end(self):
         return self._end
-        
+
+class PerCurrencyCollector:
+    def __init__(self):
+        self._sum = dict()
+
+    def put(self, rec):
+        crcy = rec.currency()
+        if crcy in self._sum:
+            self._sum[crcy] = self._sum[crcy] + rec.amount()
+        else:
+            self._sum[crcy] = rec.amount()
+
+    def items(self):
+        return self._sum.items()
+
+    def summarize(self, indent=2):
+        out = ""
+        for cur, amt in self.items():
+            out = out + "{}{:10} {}\n".format(" "*indent, amt, cur)
+        return out
+    
 class ViewCommand:
+    @classmethod
+    def dateFormatter(cls, date):
+        return date.astimezone(dateutil.tz.tzlocal()).strftime("%a %b %m, %Y")
+        
     def __init__(self, csb):
         self._csb = csb
+
+    def listAll(self, recs):
+        cur_date = None
+        for rec in recs.dateSorted():
+            localtime = rec.date().astimezone(dateutil.tz.tzlocal())
+            if cur_date != localtime.date():
+                cur_date = localtime.date()
+                print(cur_date.strftime("%a %b %d, %Y"))
+            print("""  * {}
+    {} ({})
+    {:5} {}, from {}  [{}]
+""".format(localtime.strftime("%H:%M"),
+           rec.summary(), rec.rId(),
+           rec.amount(), rec.currency(), rec.paymentMethod(), ", ".join(rec.tags())))
+
+    def showSummary(self, recs):
+        total = PerCurrencyCollector()
+        payment = dict()
+        for rec in recs.unsorted():
+            total.put(rec)
+            if not rec.paymentMethod() in payment:
+                payment[rec.paymentMethod()] = PerCurrencyCollector()
+            payment[rec.paymentMethod()].put(rec)
+        print("Payment method summary:")
+        for p, t in payment.items():
+            print("  {}:".format(p))
+            print(t.summarize(4))
+        print('-'*80)
+        print("Total:")
+        print(total.summarize())
+
     def run(self, argv):
         range_parser = None
         now = datetime.datetime.now(dateutil.tz.tzlocal())
@@ -84,5 +142,12 @@ class ViewCommand:
             raise
         recs = self._csb.queryRange(range_parser.start(),
                                     range_parser.end())
-        for rec in recs.dateSorted():
-            print("{} {}".format(rec.date(), rec._amount))
+        print("="*80)
+        print("Item list")
+        print("-"*80)
+        self.listAll(recs)
+
+        print("="*80)
+        print("Summary")
+        print("-"*80)
+        self.showSummary(recs)
