@@ -23,7 +23,7 @@ class Record:
         out._summary = dic["summary"]
         out._type = dic["type"]
         out._tags = dic["tags"]
-        out._amount = dic["amount"]
+        out._amount = float(dic["amount"])
         out._paymentMethod = dic["payment"]
         out._currency = dic["currency"]
         out._id = dic["id"] if "id" in dic else cls.createId(out._date)

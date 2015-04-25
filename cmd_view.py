@@ -1,5 +1,5 @@
 
-import re, datetime, calendar
+import re, datetime, calendar, unicodedata
 import dateutil.tz
 
 # get a new date object that is obtained by month + diff.
@@ -97,7 +97,15 @@ class ViewCommand:
     @classmethod
     def dateFormatter(cls, date):
         return date.astimezone(dateutil.tz.tzlocal()).strftime("%a %b %m, %Y")
-        
+
+    @classmethod
+    def formatWithCJKChar(cls, text, width):
+        num_cjk = 0
+        for c in text:
+            num_cjk = num_cjk + 1 if unicodedata.east_asian_width(c) == 'W' else 0
+        width = width - num_cjk
+        return "{0:{1}}".format(text, width)
+    
     def __init__(self, csb):
         self._csb = csb
 
@@ -108,12 +116,18 @@ class ViewCommand:
             if cur_date != localtime.date():
                 cur_date = localtime.date()
                 print(cur_date.strftime("%a %b %d, %Y"))
-            print("""  * {}
-    {} ({})
-    {:5} {}, from {}  [{}]
+            print(
+""" * {:<6}{} {:10}
+   :: {} {}
+   {:73.2f} {:3}
 """.format(localtime.strftime("%H:%M"),
-           rec.summary(), rec.rId(),
-           rec.amount(), rec.currency(), rec.paymentMethod(), ", ".join(rec.tags())))
+           self.formatWithCJKChar(rec.summary(), 50),
+           rec.rId(),
+           ## new line
+           self.formatWithCJKChar(", ".join(rec.tags()), 53),
+           rec.paymentMethod(),
+           ## new line
+           rec.amount(), rec.currency()))
 
     def showSummary(self, recs):
         total = PerCurrencyCollector()
