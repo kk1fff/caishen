@@ -179,3 +179,7 @@ class RecordSet:
         return self._cachedPoolGetter('payments',
                                       lambda r: { r.paymentMethod() })
 
+    def findById(self, recId):
+        if recId in self._pool:
+            return self._pool[recId]
+        return None

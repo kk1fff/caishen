@@ -3,7 +3,7 @@
 from csbook import CSBookBuilder
 from cmd_add import AddCommand
 from cmd_view import ViewCommand
-
+from cmd_rm import RemoveCommand
 import os
 import sys
 
@@ -20,7 +20,8 @@ if __name__ == "__main__":
     csbook = CSBookBuilder(config)
     cmds = {
         "add":  AddCommand,
-        "view": ViewCommand
+        "view": ViewCommand,
+        "rm": RemoveCommand
     }
     params = sys.argv
     cmd = params[1]

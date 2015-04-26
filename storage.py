@@ -83,6 +83,15 @@ class Storage:
         out.filterDate(start_date, end_date)
         return out
 
+    def findById(self, recId):
+        for i in self._allFilesIterator():
+            recs = self._loadRecordsFromFile(i)
+            rec = recs.findById(recId)
+            if rec != None:
+                print("Found: {}".format(rec.rId()))
+                return rec
+        return None
+
     def allType(self):
         return self._collectAll('types')
 

@@ -11,6 +11,9 @@ class CSBook:
     def queryRange(self, start_date, end_date):
         return self._storage.list(start_date, end_date)
 
+    def findById(self, recId):
+        return self._storage.findById(recId)
+
     def allType(self):
         return self._storage.allType()
 
