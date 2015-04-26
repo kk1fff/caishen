@@ -92,7 +92,6 @@ class Storage:
             recs = self._loadRecordsFromFile(i)
             rec = recs.findById(recId)
             if rec != None:
-                print("Found: {}".format(rec.rId()))
                 return rec
         return None
 
