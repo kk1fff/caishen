@@ -41,8 +41,8 @@ class Storage:
         return os.path.join(self._path, fn)
     
     def _loadRecordsFromFile(self, fn):
-        out = RecordSet()
         try:
+            out = RecordSet()
             with open(fn, "r") as f:
                 while True:
                     line = f.readline()
@@ -50,8 +50,9 @@ class Storage:
                         break
                     out.insert(Record.createFromJson(line.strip(), self),
                                replace = True)
-        except FileNotFoundError: pass
-        return out
+            return out
+        except FileNotFoundError:
+            return None
 
     # Help function that collect all different values which are accessed
     # through reccord.|prop|() method.
@@ -59,7 +60,8 @@ class Storage:
         out = set()
         for i in self._allFilesIterator():
             recs = self._loadRecordsFromFile(i)
-            out = out | getattr(recs, prop)()
+            if recs != None:
+                out = out | getattr(recs, prop)()
         return out
     
     def _allFilesIterator(self):
@@ -79,7 +81,9 @@ class Storage:
     def list(self, start_date, end_date):
         out = RecordSet()
         for fn in fileNameGenerator(start_date, end_date):
-            out.combine(self._loadRecordsFromFile(self.pathname(fn)))
+            recs = self._loadRecordsFromFile(self.pathname(fn))
+            if recs != None:
+                out.combine(recs)
         out.filterDate(start_date, end_date)
         return out
 
