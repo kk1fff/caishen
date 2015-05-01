@@ -91,7 +91,7 @@ class Record:
         return getattr(self, attr)
     
     def amount(self, v = None):
-        return self._assignIfSet("_amount", int, v)
+        return self._assignIfSet("_amount", float, v)
 
     def summary(self, v = None):
         return self._assignIfSet("_summary", str, v)
@@ -102,8 +102,8 @@ class Record:
     def paymentMethod(self, v = None):
         return self._assignIfSet("_paymentMethod", str, v)
 
-    def tags(self):
-        return self._tags
+    def tags(self, v = None):
+        return self._assignIfSet("_tags", list, v)
 
     def addTag(self, v):
         v = v.strip()

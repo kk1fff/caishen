@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 from csbook import CSBookBuilder
-from cmd_add import AddCommand
+
+from cmd_add  import AddCommand
 from cmd_view import ViewCommand
-from cmd_rm import RemoveCommand
+from cmd_rm   import RemoveCommand
+from cmd_edit import EditCommand
+
 import os
 import sys
 
@@ -21,7 +24,8 @@ if __name__ == "__main__":
     cmds = {
         "add":  AddCommand,
         "view": ViewCommand,
-        "rm": RemoveCommand
+        "rm":   RemoveCommand,
+        "edit": EditCommand
     }
     params = sys.argv
     cmd = params[1]
