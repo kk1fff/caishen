@@ -90,7 +90,7 @@ class PerCurrencyCollector:
     def summarize(self, indent=2):
         out = ""
         for cur, amt in self.items():
-            out = out + "{}{:10} {}\n".format(" "*indent, amt, cur)
+            out = out + "{}{:10,.2f} {}\n".format(" "*indent, amt, cur)
         return out
     
 class ViewCommand:
@@ -122,7 +122,7 @@ class ViewCommand:
    Tag:      {}
    Pay with: {}
    ID:       {}
-   {:73.2f} {:3}
+   {:73,.2f} {:3}
 """.format(localtime.strftime("%H:%M"), "." * 71,
            rec.summary(),
            ## new line
