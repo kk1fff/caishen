@@ -117,15 +117,18 @@ class ViewCommand:
                 cur_date = localtime.date()
                 print(cur_date.strftime("%a %b %d, %Y"))
             print(
-""" * {:<6}{} {:10}
-   :: {} {}
+""" * {:<6}{}
+   Summary:  {}
+   Tag:      {}
+   Pay with: {}
+   ID:       {}
    {:73.2f} {:3}
-""".format(localtime.strftime("%H:%M"),
-           self.formatWithCJKChar(rec.summary(), 50),
-           rec.rId(),
+""".format(localtime.strftime("%H:%M"), "." * 71,
+           rec.summary(),
            ## new line
            self.formatWithCJKChar(", ".join(rec.tags()), 53),
            rec.paymentMethod(),
+           rec.rId(),
            ## new line
            rec.amount(), rec.currency()))
 
