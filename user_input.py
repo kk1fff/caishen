@@ -9,7 +9,7 @@ class DateInputHandler:
     hourPart = num12 + r":(\d{0,2})"
     t1 = re.compile(num12 + r" " + hourPart)
     t2 = re.compile(num12 + r"/" + num12 + r" " + hourPart)
-    t3 = re.compile(num12 + r"/" + num12 + r"/" + num12 + r" " + hourPart)
+    t3 = re.compile(r"(\d{4})" + r"/" + num12 + r"/" + num12 + r" " + hourPart)
     t4 = re.compile(r":" + num12)
     t5 = re.compile(hourPart)
 
